@@ -1,0 +1,33 @@
+use alienfile;
+use strict;
+
+# Bandaid for OSX:
+# The default openssl is installed here:
+$ENV{PKG_CONFIG_PATH} .= ':/usr/local/opt/openssl/lib/pkgconfig/'
+    if $^O eq 'darwin';
+# but the path is not part of the default pkg-config search path,
+# so this is rarely found.
+# Worse: if you install rdkafka using brew, pkg-config --exists rdkafka
+# will fail, because one of its required dependencies is libcrypto.
+
+plugin 'PkgConfig' => (
+    pkg_name        => 'rdkafka',
+);
+
+share {
+    plugin 'Download::GitHub' => (
+        github_user => 'edenhill',
+        github_repo => 'librdkafka',
+    );
+
+    plugin 'Build::Autoconf' => (
+        with_pic => 0,
+    );
+    build [
+        # TODO: STATIC_LIB_libzstd=/path/to/libzstd.a
+        '%{configure} --enable-static',
+        '%{make} -j4',
+        '%{make} install',
+    ];
+};
+
